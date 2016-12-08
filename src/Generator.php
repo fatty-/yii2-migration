@@ -81,7 +81,7 @@ class Generator extends Component
     public function getTableSchema()
     {
         if ($this->_tableSchema === null) {
-            $this->_tableSchema = $this->db->getTableSchema($this->tableName);
+            $this->_tableSchema = $this->db->getTableSchema($this ->generateTableName($this->tableName));
         }
         return $this->_tableSchema;
     }
@@ -210,10 +210,18 @@ class Generator extends Component
                 $definition .= '->smallInteger(' . $this->renderSize($column) . ')';
                 break;
             case Schema::TYPE_INTEGER:
-                $definition .= '->integer(' . $this->renderSize($column) . ')';
+                if ($column->isPrimaryKey) {
+                    $definition .= '->primaryKey(' . $this->renderSize($column) . ')';
+                } else {
+                    $definition .= '->integer(' . $this->renderSize($column) . ')';
+                }
                 break;
             case Schema::TYPE_BIGINT:
-                $definition .= '->bigInteger(' . $this->renderSize($column) . ')';
+                if ($column->isPrimaryKey) {
+                    $definition .= '->bigPrimaryKey(' . $this->renderSize($column) . ')';
+                } else {
+                    $definition .= '->bigInteger(' . $this->renderSize($column) . ')';
+                }
                 break;
             case Schema::TYPE_FLOAT:
                 $definition .= '->float(' . $this->renderPrecision($column) . ')';
@@ -262,39 +270,8 @@ class Generator extends Component
         if ($column->comment) {
             $definition .= '->comment(\'' . $column->comment . '\')';
         }
-        if ($column->isPrimaryKey) {
-            $definition .= '->append(\'' . $this->renderPrimaryKey($column->autoIncrement) . '\')';
-        }
         
         return $definition;
-    }
-    
-    /**
-     * Renders primary key command based on used schema.
-     * @param boolean $autoIncrement
-     * @return string
-     */
-    public function renderPrimaryKey($autoIncrement = false)
-    {
-        $schema = $this->db->schema;
-        switch ($schema::className()) {
-            case 'yii\db\mssql\Schema':
-                $sql = 'IDENTITY PRIMARY KEY';
-                break;
-            case 'yii\db\oci\Schema':
-            case 'yii\db\pgsql\Schema':
-                $sql = 'PRIMARY KEY';
-                break;
-            case 'yii\db\sqlite\Schema':
-                $sql = 'PRIMARY KEY' . ($autoIncrement ? ' AUTOINCREMENT' : '');
-                break;
-            case 'yii\db\cubrid\Schema':
-            case 'yii\db\mysql\Schema':
-            default:
-                $sql = ($autoIncrement ? 'AUTO_INCREMENT ' : '') . 'PRIMARY KEY';
-                break;
-        }
-        return $sql;
     }
     
     /**
